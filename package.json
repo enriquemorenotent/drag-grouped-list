@@ -1,6 +1,6 @@
 {
 	"name": "@dbugger/drag-grouped-list",
-	"version": "0.1.1",
+	"version": "0.2.1",
 	"description": "React components and helpers for grouped list drag-and-drop.",
 	"license": "MIT",
 	"type": "module",

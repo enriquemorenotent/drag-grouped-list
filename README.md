@@ -1,6 +1,6 @@
 # @dbugger/drag-grouped-list
 
-React components and helpers for grouped list drag-and-drop. This package provides UI wiring with `@hello-pangea/dnd` and headless helpers for data transforms. Styling is up to the consumer.
+React components and helpers for grouped list drag-and-drop. This package provides UI wiring with `@hello-pangea/dnd`, a stable layout component, and headless helpers for data transforms.
 
 ## Install
 
@@ -39,6 +39,22 @@ const groups = [
 Group order is the array order. Each group and item must have a stable `id`.
 
 ## Components
+
+### `GroupedBoard`
+
+Owns the drag-and-drop layout structure used for stable regroup/reorder. It renders the group container and droppable body with Tailwind classes that match the working board layout. You provide the header and item rendering (including the drag handle).
+
+Props:
+
+- `groups` (array, required)
+- `onGroupsChange(nextGroups, meta)` (required)
+- `renderGroupHeader({ group })` (required)
+- `renderItem({ item, group, index, innerRef, draggableProps, dragHandleProps, isDragging })` (required)
+- `getGroupId(group)` (optional, default `group.id`)
+- `getItemId(item)` (optional, default `item.id`)
+- `className` (optional, default `flex gap-4 overflow-x-auto`)
+- `groupClassName` (optional, default `flex w-72 flex-col group`)
+- `groupBodyClassName` (optional, overrides the default droppable body classes)
 
 ### `GroupedList`
 
@@ -108,6 +124,26 @@ Returns:
 If `destination` is missing, returns the original `groups` with all other fields set to `null`.
 
 ## Example
+
+```jsx
+import { GroupedBoard } from "@dbugger/drag-grouped-list";
+
+const Board = ({ groups, setGroups, renderColumnHeader }) => (
+	<GroupedBoard
+		groups={groups}
+		onGroupsChange={(nextGroups) => setGroups(nextGroups)}
+		renderGroupHeader={({ group }) => renderColumnHeader(group)}
+		renderItem={({ item, innerRef, draggableProps, dragHandleProps }) => (
+			<div ref={innerRef} {...draggableProps}>
+				<span {...dragHandleProps}>drag</span>
+				{item.title}
+			</div>
+		)}
+	/>
+);
+```
+
+## Legacy Example
 
 ```jsx
 import { GroupedList } from "@dbugger/drag-grouped-list";
