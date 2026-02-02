@@ -1,0 +1,27 @@
+{
+	"name": "@dbugger/drag-grouped-list",
+	"version": "0.1.1",
+	"description": "Headless helpers for grouped list reordering with drag-and-drop.",
+	"license": "MIT",
+	"type": "module",
+	"main": "./dist/index.js",
+	"exports": {
+		".": "./dist/index.js"
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
+	"peerDependencies": {
+		"@hello-pangea/dnd": "^18.0.1"
+	},
+	"scripts": {
+		"build": "vite build",
+		"test": "vitest run"
+	},
+	"devDependencies": {
+		"vite": "^5.3.4",
+		"vitest": "^1.5.1"
+	}
+}
