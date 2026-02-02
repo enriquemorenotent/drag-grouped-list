@@ -1,3 +1,5 @@
+const getItems = (group) => (Array.isArray(group?.items) ? group.items : []);
+
 export const reorderList = (list, startIndex, endIndex) => {
 	const result = Array.from(list);
 	const [removed] = result.splice(startIndex, 1);
@@ -5,68 +7,83 @@ export const reorderList = (list, startIndex, endIndex) => {
 	return result;
 };
 
-export const moveItemBetweenLists = (sourceItems, destinationItems, sourceIndex, destinationIndex) => {
-	const sourceClone = Array.from(sourceItems);
-	const destClone = Array.from(destinationItems);
-	const [moved] = sourceClone.splice(sourceIndex, 1);
-	if (moved === undefined) {
-		return { sourceItems, destinationItems };
+export const moveItemBetweenGroups = (groups, source, destination) => {
+	const fromGroupId = String(source.droppableId);
+	const toGroupId = String(destination.droppableId);
+	const fromIndex = source.index;
+	const toIndex = destination.index;
+
+	const fromGroupIndex = groups.findIndex((group) => String(group.id) === fromGroupId);
+	const toGroupIndex = groups.findIndex((group) => String(group.id) === toGroupId);
+
+	if (fromGroupIndex === -1 || toGroupIndex === -1) {
+		return {
+			groups,
+			movedItem: null,
+			fromGroupId,
+			toGroupId,
+			fromIndex,
+			toIndex,
+		};
 	}
-	destClone.splice(destinationIndex, 0, moved);
-	return { sourceItems: sourceClone, destinationItems: destClone, movedItem: moved };
+
+	const fromGroup = groups[fromGroupIndex];
+	const toGroup = groups[toGroupIndex];
+	const fromItems = getItems(fromGroup);
+	const toItems = getItems(toGroup);
+	const movedItem = fromItems[fromIndex];
+
+	if (!movedItem) {
+		return {
+			groups,
+			movedItem: null,
+			fromGroupId,
+			toGroupId,
+			fromIndex,
+			toIndex,
+		};
+	}
+
+	let nextGroups = groups;
+
+	if (fromGroupId === toGroupId) {
+		if (fromIndex !== toIndex) {
+			const reordered = reorderList(fromItems, fromIndex, toIndex);
+			nextGroups = groups.map((group, index) => (index === fromGroupIndex ? { ...group, items: reordered } : group));
+		}
+	} else {
+		const sourceClone = Array.from(fromItems);
+		const destClone = Array.from(toItems);
+		sourceClone.splice(fromIndex, 1);
+		destClone.splice(toIndex, 0, movedItem);
+		nextGroups = groups.map((group, index) => {
+			if (index === fromGroupIndex) return { ...group, items: sourceClone };
+			if (index === toGroupIndex) return { ...group, items: destClone };
+			return group;
+		});
+	}
+
+	return {
+		groups: nextGroups,
+		movedItem,
+		fromGroupId,
+		toGroupId,
+		fromIndex,
+		toIndex,
+	};
 };
 
-export const applyItemDrag = ({ itemsByColumn, source, destination }) => {
+export const applyItemDrag = ({ groups, source, destination }) => {
 	if (!destination) {
 		return {
-			itemsByColumn,
+			groups,
 			movedItem: null,
-			fromColumnId: null,
-			toColumnId: null,
+			fromGroupId: null,
+			toGroupId: null,
 			fromIndex: null,
 			toIndex: null,
 		};
 	}
 
-	const fromColumnId = source.droppableId;
-	const toColumnId = destination.droppableId;
-	const fromItems = itemsByColumn[fromColumnId] || [];
-	const toItems = itemsByColumn[toColumnId] || [];
-	const movedItem = fromItems[source.index];
-
-	if (!movedItem) {
-		return {
-			itemsByColumn,
-			movedItem: null,
-			fromColumnId,
-			toColumnId,
-			fromIndex: source.index,
-			toIndex: destination.index,
-		};
-	}
-
-	let nextItemsByColumn = itemsByColumn;
-
-	if (fromColumnId === toColumnId) {
-		if (source.index !== destination.index) {
-			const reordered = reorderList(fromItems, source.index, destination.index);
-			nextItemsByColumn = { ...itemsByColumn, [fromColumnId]: reordered };
-		}
-	} else {
-		const moved = moveItemBetweenLists(fromItems, toItems, source.index, destination.index);
-		nextItemsByColumn = {
-			...itemsByColumn,
-			[fromColumnId]: moved.sourceItems,
-			[toColumnId]: moved.destinationItems,
-		};
-	}
-
-	return {
-		itemsByColumn: nextItemsByColumn,
-		movedItem,
-		fromColumnId,
-		toColumnId,
-		fromIndex: source.index,
-		toIndex: destination.index,
-	};
+	return moveItemBetweenGroups(groups, source, destination);
 };

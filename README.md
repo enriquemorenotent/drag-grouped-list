@@ -1,6 +1,6 @@
 # @dbugger/drag-grouped-list
 
-Headless helpers for grouped list reordering with drag-and-drop. This package only handles data transforms and expects the host app to render UI and own persistence.
+React components and helpers for grouped list drag-and-drop. This package provides UI wiring with `@hello-pangea/dnd` and headless helpers for data transforms. Styling is up to the consumer.
 
 ## Install
 
@@ -8,86 +8,122 @@ Headless helpers for grouped list reordering with drag-and-drop. This package on
 npm install @dbugger/drag-grouped-list
 ```
 
-Peer dependency:
+Peer dependencies:
 
 ```bash
-npm install @hello-pangea/dnd
+npm install react react-dom @hello-pangea/dnd
 ```
 
 ## Data Model
 
-The helpers expect a grouped list structure:
+The components and helpers expect an array of groups:
 
 ```js
-const itemsByColumn = {
-  "column-1": [
-    { id: "item-1", title: "Item 1" },
-    { id: "item-2", title: "Item 2" },
-  ],
-  "column-2": [
-    { id: "item-3", title: "Item 3" },
-  ],
-};
+const groups = [
+	{
+		id: "group-1",
+		title: "Group One",
+		items: [
+			{ id: "item-1", title: "Item 1" },
+			{ id: "item-2", title: "Item 2" },
+		],
+	},
+	{
+		id: "group-2",
+		title: "Group Two",
+		items: [{ id: "item-3", title: "Item 3" }],
+	},
+];
 ```
 
-Each item must have a stable `id`. The helpers do not mutate the original arrays.
+Group order is the array order. Each group and item must have a stable `id`.
 
-## API
+## Components
 
-### `reorderList(list, fromIndex, toIndex)`
+### `GroupedList`
+
+Props:
+
+- `groups` (array, required)
+- `onGroupsChange(nextGroups, meta)` (required)
+- `renderGroup({ group })` (required)
+- `renderItem({ item, group, index, innerRef, draggableProps, dragHandleProps, isDragging })` (required)
+- `getGroupId(group)` (optional, default `group.id`)
+- `getItemId(item)` (optional, default `item.id`)
+- `className` (optional)
+- `groupClassName` (optional)
+- `groupBodyClassName` (optional)
+
+### `GroupDroppable`
+
+Props:
+
+- `groupId` (string | number, required)
+- `children({ innerRef, droppableProps, placeholder, isDraggingOver })` (required)
+
+### `DraggableItem`
+
+Props:
+
+- `itemId` (string | number, required)
+- `index` (number, required)
+- `children({ innerRef, draggableProps, dragHandleProps, isDragging })` (required)
+
+## Helpers
+
+### `reorderList(list, startIndex, endIndex)`
 
 Reorders a single list.
 
 Returns:
 
 - `list` (array): the reordered list
-- `movedItem` (object | undefined): the item that moved
 
-### `moveItemBetweenLists({ itemsByColumn, fromColumnId, toColumnId, fromIndex, toIndex })`
+### `moveItemBetweenGroups(groups, source, destination)`
 
-Moves an item across two lists.
+Moves an item within or across groups using `@hello-pangea/dnd` `source` and `destination` shapes.
 
 Returns:
 
-- `itemsByColumn` (object): updated map of lists
-- `movedItem` (object | undefined): the item that moved
+- `groups` (array): updated groups array
+- `movedItem` (object | null): the item that moved
+- `fromGroupId` (string)
+- `toGroupId` (string)
+- `fromIndex` (number)
+- `toIndex` (number)
 
-### `applyItemDrag({ itemsByColumn, source, destination })`
+### `applyItemDrag({ groups, source, destination })`
 
 High-level helper for drag-and-drop libraries that expose `source` and `destination` in the shape used by `@hello-pangea/dnd`.
 
 Returns:
 
-- `itemsByColumn` (object): updated map of lists
-- `movedItem` (object | undefined): the item that moved
-- `toColumnId` (string | undefined): destination column id
-- `toIndex` (number | undefined): destination index
+- `groups` (array): updated groups array
+- `movedItem` (object | null): the item that moved
+- `fromGroupId` (string | null)
+- `toGroupId` (string | null)
+- `fromIndex` (number | null)
+- `toIndex` (number | null)
 
-If `destination` is missing, returns the original `itemsByColumn` with `movedItem` undefined.
+If `destination` is missing, returns the original `groups` with all other fields set to `null`.
 
 ## Example
 
-Usage example with `@hello-pangea/dnd` result shapes:
+```jsx
+import { GroupedList } from "@dbugger/drag-grouped-list";
 
-```js
-import { applyItemDrag } from "@dbugger/drag-grouped-list";
-
-const onDragEnd = ({ source, destination }) => {
-	const result = applyItemDrag({
-		itemsByColumn,
-		source,
-		destination,
-	});
-
-	if (!result.movedItem) return;
-
-	setItemsByColumn(result.itemsByColumn);
-	onMoveTask({
-		taskId: result.movedItem.id,
-		columnId: result.toColumnId,
-		position: result.toIndex,
-	});
-};
+const Board = ({ groups, setGroups }) => (
+	<GroupedList
+		groups={groups}
+		onGroupsChange={(nextGroups) => setGroups(nextGroups)}
+		renderGroup={({ group }) => <h3>{group.title}</h3>}
+		renderItem={({ item, innerRef, draggableProps, dragHandleProps }) => (
+			<div ref={innerRef} {...draggableProps} {...dragHandleProps}>
+				{item.title}
+			</div>
+		)}
+	/>
+);
 ```
 
-The package is ESM only and declares `@hello-pangea/dnd` as a peer dependency.
+The package is ESM only.
